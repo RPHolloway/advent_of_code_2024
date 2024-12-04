@@ -5,35 +5,32 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"time"
 )
 
-func main() {
+var enable_re = regexp.MustCompile(`do\(\)|don't\(\)`)
+var instruction_re = regexp.MustCompile(`mul\((\d{1,3}),(\d{1,3})\)`)
+
+func timeTrack(start time.Time) {
+	elapsed := time.Since(start)
+	fmt.Println(elapsed)
+}
+
+func test(input string, iter int) {
 	var total int = 0
 
-	// Read input
-	//data, _ := os.ReadFile("example.txt")
-	data, _ := os.ReadFile("input.txt")
-	input := string(data)
-
 	// Split file on do() and don't()
-	pattern := `do\(\)|don't\(\)`
-	re := regexp.MustCompile(pattern)
-	parts := re.Split(input, -1)
-	enable := re.FindAllString(input, -1)
+	parts := enable_re.Split(input, -1)
+	enable := enable_re.FindAllString(input, -1)
 
 	// Parse instructions
-	pattern = `mul\((\d{1,3}),(\d{1,3})\)`
-	re = regexp.MustCompile(pattern)
-
 	for i, instructions := range parts {
 		if i == 0 || enable[i-1] == "do()" {
-			matches := re.FindAllString(instructions, -1)
-
-			fmt.Println(matches)
+			matches := instruction_re.FindAllString(instructions, -1)
 
 			// Verify reports
 			for _, match := range matches {
-				values := re.FindStringSubmatch(match)
+				values := instruction_re.FindStringSubmatch(match)
 				v1, _ := strconv.Atoi(values[1])
 				v2, _ := strconv.Atoi(values[2])
 
@@ -41,6 +38,17 @@ func main() {
 			}
 		}
 	}
+}
 
-	fmt.Println(total)
+func main() {
+	// Read input
+	//data, _ := os.ReadFile("example.txt")
+	data, _ := os.ReadFile("input.txt")
+	input := string(data)
+
+	defer timeTrack(time.Now())
+
+	for i := range 100000 {
+		test(input, i)
+	}
 }
