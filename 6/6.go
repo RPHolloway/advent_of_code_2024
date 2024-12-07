@@ -12,7 +12,6 @@ type Point struct {
 	Y int
 }
 
-var direction_idx int = 0
 var directions = []Point{
 	{0, -1}, // up
 	{1, 0},  // right
@@ -27,9 +26,8 @@ func (p1 Point) Add(p2 Point) Point {
 	}
 }
 
-func Rotate() Point {
-	direction_idx++
-	return directions[direction_idx%len(directions)]
+func Rotate(current_dir int) int {
+	return (current_dir + 1) % len(directions)
 }
 
 func timeTrack(start time.Time) {
@@ -46,51 +44,108 @@ func safeAccess(arr [][]rune, p Point) rune {
 	return arr[p.Y][p.X]
 }
 
+func test_loop(rows [][]rune, origin Point, gaurd Point, current_dir int) int {
+	rows_copy := make([][]rune, len(rows))
+	copy(rows_copy, rows)
+	for i := range rows {
+		rows_copy[i] = append([]rune(nil), rows[i]...)
+	}
+
+	next := gaurd.Add(directions[current_dir])
+
+	if next == origin {
+		// Can't put the object at the origin
+		return 0
+	}
+
+	rows_copy[next.Y][next.X] = '#'
+	stuck := 0
+
+	for {
+		if rows_copy[gaurd.Y][gaurd.X] == '.' {
+			rows_copy[gaurd.Y][gaurd.X] = rune(current_dir + 10)
+		}
+		next_obj := safeAccess(rows_copy, next)
+
+		if next_obj == '#' {
+			// hit an object
+			current_dir = Rotate(current_dir)
+			stuck++
+			if stuck > 4 {
+				return 1
+			}
+		} else if next_obj == 0 {
+			// left the room
+			break
+		} else if next_obj == rune(current_dir+10) {
+			return 1
+		} else {
+			// move
+			gaurd = next
+			stuck = 0
+		}
+
+		next = gaurd.Add(directions[current_dir])
+	}
+
+	return 0
+}
+
 func test(rows [][]rune) int {
-	total := 0
+	steps := 1
+	loop_objs := 0
 
 	// Find the gaurd
-	var gaurd Point
+	var origin Point
 	for y, row := range rows {
 		for x, c := range row {
 			if c == '^' {
-				gaurd = Point{x, y}
+				origin = Point{x, y}
 			}
 		}
 	}
 
-	direction := directions[0]
+	gaurd := origin
+	current_dir := 0
 	for {
-		if rows[gaurd.Y][gaurd.X] != 'X' {
-			total++
-			rows[gaurd.Y][gaurd.X] = 'X'
+		if rows[gaurd.Y][gaurd.X] == rune('.') {
+			rows[gaurd.Y][gaurd.X] = rune(current_dir + 10)
+			steps++
 		}
 
-		next := gaurd.Add(direction)
-		if safeAccess(rows, next) == '#' {
+		next := gaurd.Add(directions[current_dir])
+		next_obj := safeAccess(rows, next)
+
+		if next_obj == '#' {
 			// hit an object
-			direction = Rotate()
-		} else if safeAccess(rows, next) == 0 {
+			current_dir = Rotate(current_dir)
+		} else if next_obj == 0 {
 			// left the room
 			break
 		} else {
+			loop_objs += test_loop(rows, origin, gaurd, current_dir)
+
 			// move
 			gaurd = next
 		}
 	}
 
-	return total
+	fmt.Printf("Steps: %d\n", steps)
+	fmt.Printf("Loops: %d\n", loop_objs)
+
+	return steps
 }
 
 func main() {
 	// Read input
+	//data, _ := os.ReadFile("corner.txt")
 	//data, _ := os.ReadFile("example.txt")
 	data, _ := os.ReadFile("input.txt")
 	input := string(data)
 
 	// Parse sections
 	var rows [][]rune
-	for _, line := range strings.Split(input, "\n") {
+	for _, line := range strings.Split(input, "\r\n") {
 		rows = append(rows, []rune(line))
 	}
 
