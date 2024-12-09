@@ -20,14 +20,20 @@ func timeTrack(start time.Time) {
 	fmt.Println(elapsed)
 }
 
+func concat(v1 int, v2 int) int {
+	r, _ := strconv.Atoi(strconv.Itoa(v1) + strconv.Itoa(v2))
+	return r
+}
+
 func check_next(answer int, operands []int, i int, solution int) int {
 	add := answer + operands[i]
 	mul := answer * operands[i]
+	cc := concat(answer, operands[i])
 	i++
 
 	// check to see if we are at the end
 	if i >= len(operands) {
-		if add == solution || mul == solution {
+		if add == solution || mul == solution || cc == solution {
 			return solution
 		} else {
 			return 0
@@ -43,6 +49,13 @@ func check_next(answer int, operands []int, i int, solution int) int {
 
 	if mul <= solution {
 		answer = check_next(mul, operands, i, solution)
+		if answer == solution {
+			return answer
+		}
+	}
+
+	if cc <= solution {
+		answer = check_next(cc, operands, i, solution)
 		if answer == solution {
 			return answer
 		}
