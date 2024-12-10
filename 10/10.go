@@ -48,7 +48,7 @@ func (p1 Point) Add(p2 Point) Point {
 	}
 }
 
-func check_next(topo_map [][]int, p Point, peaks map[Point]struct{}) map[Point]struct{} {
+func check_peaks(topo_map [][]int, p Point, peaks map[Point]struct{}) map[Point]struct{} {
 	for _, direction := range directions {
 		z := safeAccess(topo_map, p)
 		next_p := p.Add(direction)
@@ -58,7 +58,7 @@ func check_next(topo_map [][]int, p Point, peaks map[Point]struct{}) map[Point]s
 			if next_z == 9 {
 				peaks[next_p] = struct{}{}
 			} else {
-				check_next(topo_map, next_p, peaks)
+				check_peaks(topo_map, next_p, peaks)
 			}
 		}
 	}
@@ -66,9 +66,25 @@ func check_next(topo_map [][]int, p Point, peaks map[Point]struct{}) map[Point]s
 	return peaks
 }
 
-func test(topo_map [][]int) int {
-	total := 0
+func check_trails(topo_map [][]int, p Point, trails int) int {
+	for _, direction := range directions {
+		z := safeAccess(topo_map, p)
+		next_p := p.Add(direction)
+		next_z := safeAccess(topo_map, next_p)
 
+		if next_z == z+1 {
+			if next_z == 9 {
+				trails++
+			} else {
+				trails = check_trails(topo_map, next_p, trails)
+			}
+		}
+	}
+
+	return trails
+}
+
+func test(topo_map [][]int) int {
 	var trailheads []Point
 	for y, row := range topo_map {
 		for x, z := range row {
@@ -78,13 +94,21 @@ func test(topo_map [][]int) int {
 		}
 	}
 
+	peak_count := 0
 	for _, trail := range trailheads {
 		peaks := make(map[Point]struct{})
-		peaks = check_next(topo_map, trail, peaks)
-		total += len(peaks)
+		peaks = check_peaks(topo_map, trail, peaks)
+		peak_count += len(peaks)
 	}
 
-	return total
+	trails := 0
+	for _, trail := range trailheads {
+		trails += check_trails(topo_map, trail, 0)
+	}
+
+	fmt.Printf("Peaks: %d\r\n", peak_count)
+	fmt.Printf("Trails: %d\r\n", trails)
+	return trails
 }
 
 func main() {
