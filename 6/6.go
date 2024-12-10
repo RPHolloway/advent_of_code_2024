@@ -44,22 +44,23 @@ func safeAccess(arr [][]rune, p Point) rune {
 	return arr[p.Y][p.X]
 }
 
-func test_loop(rows [][]rune, origin Point, gaurd Point, current_dir int) int {
+func test_loop(rows [][]rune, origin Point, gaurd Point, current_dir int) Point {
 	rows_copy := make([][]rune, len(rows))
 	copy(rows_copy, rows)
 	for i := range rows {
 		rows_copy[i] = append([]rune(nil), rows[i]...)
 	}
 
-	next := gaurd.Add(directions[current_dir])
-
-	if next == origin {
+	block := gaurd.Add(directions[current_dir])
+	rows_copy[block.Y][block.X] = '#'
+	if block == origin {
 		// Can't put the object at the origin
-		return 0
+		return Point{}
 	}
 
-	rows_copy[next.Y][next.X] = '#'
-	stuck := 0
+	gaurd = origin
+	current_dir = 0
+	next := gaurd.Add(directions[current_dir])
 
 	for {
 		if rows_copy[gaurd.Y][gaurd.X] == '.' {
@@ -70,30 +71,25 @@ func test_loop(rows [][]rune, origin Point, gaurd Point, current_dir int) int {
 		if next_obj == '#' {
 			// hit an object
 			current_dir = Rotate(current_dir)
-			stuck++
-			if stuck > 4 {
-				return 1
-			}
 		} else if next_obj == 0 {
 			// left the room
 			break
 		} else if next_obj == rune(current_dir+10) {
-			return 1
+			return block
 		} else {
 			// move
 			gaurd = next
-			stuck = 0
 		}
 
 		next = gaurd.Add(directions[current_dir])
 	}
 
-	return 0
+	return Point{}
 }
 
 func test(rows [][]rune) int {
 	steps := 1
-	loop_objs := 0
+	loop_objs := make(map[Point]struct{})
 
 	// Find the gaurd
 	var origin Point
@@ -109,7 +105,7 @@ func test(rows [][]rune) int {
 	current_dir := 0
 	for {
 		if rows[gaurd.Y][gaurd.X] == rune('.') {
-			rows[gaurd.Y][gaurd.X] = rune(current_dir + 10)
+			//rows[gaurd.Y][gaurd.X] = rune(current_dir + 10)
 			steps++
 		}
 
@@ -123,7 +119,7 @@ func test(rows [][]rune) int {
 			// left the room
 			break
 		} else {
-			loop_objs += test_loop(rows, origin, gaurd, current_dir)
+			loop_objs[test_loop(rows, origin, gaurd, current_dir)] = struct{}{}
 
 			// move
 			gaurd = next
@@ -131,7 +127,7 @@ func test(rows [][]rune) int {
 	}
 
 	fmt.Printf("Steps: %d\n", steps)
-	fmt.Printf("Loops: %d\n", loop_objs)
+	fmt.Printf("Loops: %d\n", len(loop_objs)-1)
 
 	return steps
 }
