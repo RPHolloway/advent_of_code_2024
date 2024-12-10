@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"time"
 )
@@ -16,7 +17,7 @@ func isFileEntry(i int) bool {
 	return i%2 == 0
 }
 
-func test(disk_map []int) int {
+func test_method1(disk_map []int) int {
 	checksum := 0
 	file_idx := 0
 	last_map_idx := len(disk_map) - 1
@@ -55,8 +56,64 @@ func test(disk_map []int) int {
 		}
 	}
 
-	fmt.Println(checksum)
-	return 0
+	return checksum
+}
+
+func test_method2(disk_map []int) int {
+	checksum := 0
+	last_map_idx := len(disk_map) - 1
+
+	var files, free []int
+	for map_idx, entry := range disk_map {
+		if isFileEntry(map_idx) {
+			files = append(files, entry)
+		} else {
+			free = append(free, entry)
+		}
+	}
+
+	slices.Reverse(files)
+	file_count := len(files) - 1
+
+	for i, file_size := range files {
+		for j, free_space := range free {
+			file_id := last_map_idx/2 - i
+
+			if j >= (file_count - i) {
+				file_idx := 0
+				for x := 0; x < j*2; x++ {
+					file_idx += disk_map[x]
+				}
+
+				for x := 0; x < file_size; x++ {
+					// calculate checksum
+					checksum += file_id * file_idx
+					file_idx++
+				}
+				break
+			}
+
+			if file_size <= free_space {
+				file_idx := disk_map[0]
+				for x := 0; x < j*2; x++ {
+					file_idx += disk_map[x+1]
+				}
+
+				for x := 0; x < file_size; x++ {
+					// calculate checksum
+					checksum += file_id * file_idx
+					file_idx++
+				}
+
+				free[j] -= file_size
+				disk_map[j*2] += file_size
+				disk_map[j*2+1] -= file_size
+				break
+			}
+		}
+	}
+
+	return checksum
 }
 
 func main() {
@@ -75,6 +132,9 @@ func main() {
 
 	defer timeTrack(time.Now())
 
-	total := test(disk_map)
-	fmt.Printf("Total: %d\r\n", total)
+	//method1 := test_method1(disk_map)
+	method2 := test_method2(disk_map)
+
+	//fmt.Printf("Method 1: %d\r\n", method1)
+	fmt.Printf("Method 2: %d\r\n", method2)
 }
