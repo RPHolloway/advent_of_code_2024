@@ -37,12 +37,12 @@ func fill_garden(garden [][]rune, start grid.Point, plot_id int, labeled_garden 
 	var next grid.Point
 
 	for len(stack) > 0 {
-		up_path, down_path := false, false
 		seed := stack[0]
 		stack = stack[1:]
 
 		plant := grid.SafeGet(garden, seed)
 
+		up_path, down_path := false, false
 		left := seed
 		for grid.SafeGet(garden, left) == plant {
 			grid.Set(labeled_garden, left, plot_id)
@@ -65,6 +65,7 @@ func fill_garden(garden [][]rune, start grid.Point, plot_id int, labeled_garden 
 			left = left.Add(grid.Directions[grid.DIR_LEFT])
 		}
 
+		up_path, down_path = false, false
 		right := seed.Add(grid.Directions[grid.DIR_RIGHT])
 		for grid.SafeGet(garden, right) == plant {
 			grid.Set(labeled_garden, right, plot_id)
