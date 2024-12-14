@@ -10,6 +10,7 @@ import (
 type Plot struct {
 	Area      int
 	Perimeter int
+	Corners   int
 }
 
 func timeTrack(start time.Time) {
@@ -29,6 +30,33 @@ func check_neighbor(garden [][]rune, labeled_garden [][]int, p grid.Point, dir i
 	}
 
 	return grid.Point{}
+}
+
+func check_diagonals(garden [][]int, p grid.Point, plot_id int) int {
+	corners := 0
+
+	if grid.SafeGet(garden, p.Add(grid.Directions[grid.DIR_UP])) != plot_id {
+
+		if grid.CheckDirection(garden, p, grid.DIR_LEFT) == plot_id && grid.CheckDirection(garden, p.Add(grid.Directions[grid.DIR_UP]), grid.DIR_LEFT) == plot_id {
+			corners++
+		}
+
+		if grid.CheckDirection(garden, p, grid.DIR_RIGHT) == plot_id && grid.CheckDirection(garden, p.Add(grid.Directions[grid.DIR_UP]), grid.DIR_RIGHT) == plot_id {
+			corners++
+		}
+	}
+
+	if grid.SafeGet(garden, p.Add(grid.Directions[grid.DIR_DOWN])) != plot_id {
+		if grid.CheckDirection(garden, p, grid.DIR_LEFT) == plot_id && grid.CheckDirection(garden, p.Add(grid.Directions[grid.DIR_DOWN]), grid.DIR_LEFT) == plot_id {
+			corners++
+		}
+
+		if grid.CheckDirection(garden, p, grid.DIR_RIGHT) == plot_id && grid.CheckDirection(garden, p.Add(grid.Directions[grid.DIR_DOWN]), grid.DIR_RIGHT) == plot_id {
+			corners++
+		}
+	}
+
+	return corners
 }
 
 func fill_garden(garden [][]rune, start grid.Point, plot_id int, labeled_garden [][]int) {
@@ -105,6 +133,31 @@ func measure_plots(garden [][]int) map[int]Plot {
 				}
 			}
 
+			neighbors := 0
+			for dir := range grid.DIR_COUNT {
+				if grid.CheckDirection(garden, location, dir) == plot_id {
+					neighbors++
+				}
+
+			}
+
+			if neighbors == 0 {
+				plot.Corners += 4
+			} else if neighbors >= 1 {
+				if neighbors == 1 {
+					plot.Corners += 2
+				}
+
+				plot.Corners += check_diagonals(garden, location, plot_id)
+
+				if neighbors >= 2 {
+					if (grid.CheckDirection(garden, location, grid.DIR_UP) != grid.CheckDirection(garden, location, grid.DIR_DOWN)) &&
+						(grid.CheckDirection(garden, location, grid.DIR_LEFT) != grid.CheckDirection(garden, location, grid.DIR_RIGHT)) {
+						plot.Corners += 1
+					}
+				}
+			}
+
 			plots[plot_id] = plot
 		}
 	}
@@ -116,8 +169,13 @@ func calculate_price(plot Plot) int {
 	return plot.Area * plot.Perimeter
 }
 
+func calculate_bulk_price(plot Plot) int {
+	return plot.Area * plot.Corners
+}
+
 func test(garden [][]rune) int {
 	total := 0
+	bulkTotal := 0
 
 	width, height := grid.GetSize(garden)
 	labeled_garden := grid.Create[int](width, height)
@@ -133,8 +191,10 @@ func test(garden [][]rune) int {
 	}
 
 	plots := measure_plots(labeled_garden)
+
 	for _, plot := range plots {
 		total += calculate_price(plot)
+		bulkTotal += calculate_bulk_price(plot)
 	}
 
 	return total
