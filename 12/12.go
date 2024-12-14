@@ -17,73 +17,76 @@ func timeTrack(start time.Time) {
 	fmt.Println(elapsed)
 }
 
-func label_garden(garden [][]rune) [][]int {
-	width, height := grid.GetSize(garden)
-	labeled_garden := grid.Create[int](width, height)
-	plot_count := 10
+func check_neighbor(garden [][]rune, labeled_garden [][]int, p grid.Point, dir int, plant rune) grid.Point {
+	p = p.Add(grid.Directions[dir])
 
-	for y, row := range garden {
-		for x, plant := range row {
-			location := grid.Point{X: x, Y: y}
-			plot_id := grid.SafeGet(labeled_garden, location)
-			if plot_id == 0 {
-				plot_count++
-				plot_id = plot_count
-				grid.Set(labeled_garden, location, plot_id)
-			}
-
-			for dir := range grid.DIR_COUNT {
-				if grid.CheckDirection(garden, location, dir) == plant {
-					next_id := grid.CheckDirection(labeled_garden, location, dir)
-					if next_id == 0 {
-						grid.Set(labeled_garden, location.Add(grid.Directions[dir]), plot_id)
-					} else if next_id < plot_id {
-						grid.Set(labeled_garden, location, next_id)
-					}
-				}
-			}
-		}
+	if grid.SafeGet(garden, p) == 0 {
+		return grid.Point{}
 	}
 
-	for y := height - 1; y >= 0; y-- {
-		for x := width - 1; x >= 0; x-- {
-			location := grid.Point{X: x, Y: y}
-			plant := grid.SafeGet(garden, location)
-			plot_id := grid.SafeGet(labeled_garden, location)
-
-			for dir := range grid.DIR_COUNT {
-				if grid.CheckDirection(garden, location, dir) == plant {
-					next_id := grid.CheckDirection(labeled_garden, location, dir)
-					if next_id > plot_id {
-						grid.Set(labeled_garden, location.Add(grid.Directions[dir]), plot_id)
-					} else if next_id < plot_id {
-						grid.Set(labeled_garden, location, next_id)
-					}
-				}
-			}
-		}
+	if grid.SafeGet(garden, p) == plant && grid.SafeGet(labeled_garden, p) == 0 {
+		return p
 	}
 
-	for y := 0; y <= height-1; y++ {
-		for x := 0; x <= width-1; x++ {
-			location := grid.Point{X: x, Y: y}
-			plant := grid.SafeGet(garden, location)
-			plot_id := grid.SafeGet(labeled_garden, location)
+	return grid.Point{}
+}
 
-			for dir := range grid.DIR_COUNT {
-				if grid.CheckDirection(garden, location, dir) == plant {
-					next_id := grid.CheckDirection(labeled_garden, location, dir)
-					if next_id > plot_id {
-						grid.Set(labeled_garden, location.Add(grid.Directions[dir]), plot_id)
-					} else if next_id < plot_id {
-						grid.Set(labeled_garden, location, next_id)
-					}
-				}
+func fill_garden(garden [][]rune, start grid.Point, plot_id int, labeled_garden [][]int) {
+	stack := []grid.Point{start}
+	blank := grid.Point{}
+	var next grid.Point
+
+	for len(stack) > 0 {
+		up_path, down_path := false, false
+		seed := stack[0]
+		stack = stack[1:]
+
+		plant := grid.SafeGet(garden, seed)
+
+		left := seed
+		for grid.SafeGet(garden, left) == plant {
+			grid.Set(labeled_garden, left, plot_id)
+
+			next = check_neighbor(garden, labeled_garden, left, grid.DIR_UP, plant)
+			if next == blank {
+				up_path = false
+			} else if !up_path {
+				stack = append(stack, next)
+				up_path = true
 			}
+			next = check_neighbor(garden, labeled_garden, left, grid.DIR_DOWN, plant)
+			if next == blank {
+				down_path = false
+			} else if !down_path {
+				stack = append(stack, next)
+				down_path = true
+			}
+
+			left = left.Add(grid.Directions[grid.DIR_LEFT])
+		}
+
+		right := seed.Add(grid.Directions[grid.DIR_RIGHT])
+		for grid.SafeGet(garden, right) == plant {
+			grid.Set(labeled_garden, right, plot_id)
+
+			next = check_neighbor(garden, labeled_garden, right, grid.DIR_UP, plant)
+			if next == blank {
+				up_path = false
+			} else if !up_path {
+				stack = append(stack, next)
+				up_path = true
+			}
+			next = check_neighbor(garden, labeled_garden, right, grid.DIR_DOWN, plant)
+			if next == blank {
+				down_path = false
+			} else if !down_path {
+				stack = append(stack, next)
+				down_path = true
+			}
+
+			right = right.Add(grid.Directions[grid.DIR_RIGHT])
 		}
 	}
-
-	return labeled_garden
 }
 
 func measure_plots(garden [][]int) map[int]Plot {
@@ -115,7 +118,19 @@ func calculate_price(plot Plot) int {
 func test(garden [][]rune) int {
 	total := 0
 
-	labeled_garden := label_garden(garden)
+	width, height := grid.GetSize(garden)
+	labeled_garden := grid.Create[int](width, height)
+
+	plot_count := 1
+	for y, row := range labeled_garden {
+		for x, plot_id := range row {
+			if plot_id == 0 {
+				fill_garden(garden, grid.Point{X: x, Y: y}, plot_count, labeled_garden)
+				plot_count++
+			}
+		}
+	}
+
 	plots := measure_plots(labeled_garden)
 	for _, plot := range plots {
 		total += calculate_price(plot)
