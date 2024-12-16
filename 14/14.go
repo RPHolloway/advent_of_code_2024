@@ -65,15 +65,51 @@ func computeSafetyFactor() int {
 	return nw * ne * sw * se
 }
 
+func christmasTreeCheck() bool {
+	robotMap := make(map[grid.Point]struct{})
+	for _, r := range Robots {
+		robotMap[r.Location] = struct{}{}
+	}
+
+	for r := range robotMap {
+		line := 0
+		next := r
+		_, ok := robotMap[grid.Point{X: next.X + 1, Y: r.Y}]
+		for ok {
+			next.X++
+			line++
+
+			_, ok = robotMap[grid.Point{X: next.X, Y: r.Y}]
+
+			if line > 10 {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func run() {
 	safetyFactor := 0
 
-	for r, robot := range Robots {
-		for i := 0; i < 100; i++ {
+	for i := 0; i < ROOM_HEIGHT*ROOM_WIDTH; i++ {
+		for r, robot := range Robots {
 			robot = robot.move()
+			Robots[r] = robot
 		}
-		//fmt.Println(robot.Location)
-		Robots[r] = robot
+
+		if christmasTreeCheck() {
+			room := grid.Create[rune](ROOM_WIDTH, ROOM_HEIGHT)
+			grid.Fill(room, '.')
+
+			for _, robot := range Robots {
+				grid.Set(room, robot.Location, 'X')
+			}
+
+			fmt.Println(i)
+			grid.Output(room)
+		}
 	}
 
 	safetyFactor = computeSafetyFactor()
