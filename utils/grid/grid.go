@@ -1,6 +1,8 @@
 package grid
 
 import (
+	"fmt"
+	"os"
 	"strings"
 )
 
@@ -22,6 +24,11 @@ var Directions = []Point{
 type Point struct {
 	X int
 	Y int
+}
+
+type Cursor struct {
+	Location  Point
+	Direction int
 }
 
 func Parse(input string, delimiter string) [][]rune {
@@ -57,6 +64,26 @@ func Create[T any](width int, height int) [][]T {
 	}
 
 	return slice
+}
+
+func Output(arr [][]rune) {
+	var builder strings.Builder
+	for _, row := range arr {
+		builder.WriteString(string(row))
+		builder.WriteString("\n")
+	}
+	os.WriteFile("output.txt", []byte(builder.String()), 0644)
+}
+
+func OutputInt(arr [][]int) {
+	var builder strings.Builder
+	for _, row := range arr {
+		for _, i := range row {
+			fmt.Fprintf(&builder, "%05d ", i)
+		}
+		builder.WriteString("\n")
+	}
+	os.WriteFile("output.txt", []byte(builder.String()), 0644)
 }
 
 func GetSize[T any](arr [][]T) (int, int) {
