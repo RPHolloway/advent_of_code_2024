@@ -3,3 +3,12 @@ Register B: 0
 Register C: 0
 
 Program: 2,4,1,5,7,5,1,6,4,3,5,5,0,3,3,0
+
+BST B = A % 8
+BXL B = B ^ 5
+CDV C = A / 32
+BXL B = B ^ 6
+BXC B = B ^ C
+OUT B % 8
+ADV A = A / 8
+JNZ A

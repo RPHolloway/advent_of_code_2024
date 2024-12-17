@@ -58,8 +58,17 @@ func dv(co int) int {
 	return int(float64(Registers[0]) / math.Pow(2, float64(o)))
 }
 
+func dv_rev(co int, r int) int {
+	o := comboOperator(co)
+	return int(float64(r) * math.Pow(2, float64(o)))
+}
+
 func adv(co int) {
 	Registers[0] = dv(co)
+}
+
+func adv_rev(co int) {
+	Registers[0] = dv_rev(co, Registers[0])
 }
 
 func bxl(o int) {
@@ -73,7 +82,6 @@ func bst(co int) {
 
 func jnz(o int) int {
 	return o - 2
-
 }
 
 func bxc() {
@@ -89,8 +97,16 @@ func bdv(co int) {
 	Registers[1] = dv(co)
 }
 
+func bdv_rev(co int) {
+	Registers[1] = dv_rev(co, Registers[0])
+}
+
 func cdv(co int) {
 	Registers[2] = dv(co)
+}
+
+func cdv_rev(co int) {
+	Registers[2] = dv_rev(co, Registers[0])
 }
 
 func toCSV(slice []int) string {
@@ -132,6 +148,51 @@ func run() {
 	fmt.Println(toCSV(output))
 }
 
+func run_rev() {
+	var output []int
+
+	r := len(Instructions) - 1
+	Registers[0] = 15
+
+	for pc := 0; pc < len(Instructions); pc += 2 {
+		o := Instructions[pc+1]
+		i := Instructions[pc]
+
+		switch i {
+		case ADV:
+			adv_rev(o)
+		case BXL:
+			bxl(o)
+		case BST:
+			bst(o)
+		case JNZ:
+			if Registers[0] != 0 {
+				pc = jnz(o)
+			}
+		case BXC:
+			bxc()
+		case OUT:
+			r--
+			if r >= 0 {
+				Registers[o-4] += Instructions[r]
+			}
+
+			output = append(output, out(o))
+		case BDV:
+			bdv(o)
+		case CDV:
+			cdv(o)
+		}
+
+		if r < 0 {
+			break
+		}
+	}
+
+	fmt.Println(Registers[0])
+	fmt.Println(toCSV(output))
+}
+
 func main() {
 	// Read input
 	//data, _ := os.ReadFile("example_2.txt")
@@ -157,4 +218,5 @@ func main() {
 	defer timeTrack(time.Now())
 
 	run()
+	run_rev()
 }
