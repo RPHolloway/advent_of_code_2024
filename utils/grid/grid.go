@@ -1,6 +1,8 @@
 package grid
 
 import (
+	"fmt"
+	"os"
 	"strings"
 )
 
@@ -57,6 +59,34 @@ func Create[T any](width int, height int) [][]T {
 	}
 
 	return slice
+}
+
+func Fill[T any](arr [][]T, v T) {
+	for i := range arr {
+		for j := range arr[i] {
+			arr[i][j] = v
+		}
+	}
+}
+
+func Output(arr [][]rune) {
+	var builder strings.Builder
+	for _, row := range arr {
+		builder.WriteString(string(row))
+		builder.WriteString("\n")
+	}
+	os.WriteFile("output.txt", []byte(builder.String()), 0644)
+}
+
+func OutputInt(arr [][]int) {
+	var builder strings.Builder
+	for _, row := range arr {
+		for _, i := range row {
+			fmt.Fprintf(&builder, "%05d ", i)
+		}
+		builder.WriteString("\n")
+	}
+	os.WriteFile("output.txt", []byte(builder.String()), 0644)
 }
 
 func GetSize[T any](arr [][]T) (int, int) {
