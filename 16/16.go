@@ -10,6 +10,7 @@ import (
 type Node struct {
 	Reindeer grid.Cursor
 	Score    int
+	Turned   bool
 }
 
 var Maze [][]rune
@@ -27,11 +28,24 @@ func checkPaths(p grid.Point) []grid.Cursor {
 		if grid.CheckDirection(Maze, p, i) == '.' || grid.CheckDirection(Maze, p, i) == 'E' {
 			unvisited = append(unvisited, grid.Cursor{Location: p.Add(dir), Direction: i})
 		} else if grid.CheckDirection(Maze, p, i) == '#' {
-			grid.Set(VisitedMaze, p.Add(dir), 77777)
+			grid.Set(VisitedMaze, p.Add(dir), 777777)
 		}
 	}
 
 	return unvisited
+}
+
+func checkShortest(p grid.Point) []grid.Point {
+	var shortest []grid.Point
+
+	score := grid.SafeGet(VisitedMaze, p)
+	for i, dir := range grid.Directions {
+		if grid.CheckDirection(VisitedMaze, p, i) < score {
+			shortest = append(shortest, p.Add(dir))
+		}
+	}
+
+	return shortest
 }
 
 func run() {
@@ -50,7 +64,6 @@ func run() {
 	}
 
 	stack := []Node{{Reindeer: start, Score: 0}}
-
 	for len(stack) > 0 {
 		n := stack[0]
 		stack = stack[1:]
@@ -61,9 +74,19 @@ func run() {
 
 			// turn
 			if n.Reindeer.Direction != c.Direction {
-				next.Score = n.Score + 1000
+				if !n.Turned {
+					next.Score = n.Score + 1000
+				} else {
+					next.Score = n.Score
+				}
 			} else {
 				next.Score = n.Score
+
+				if grid.CheckDirection(Maze, c.Location, c.Direction) == '#' &&
+					grid.SafeGet(Maze, c.Location) != 'E' {
+					next.Score += 1000
+					next.Turned = true
+				}
 			}
 
 			// move
@@ -81,7 +104,29 @@ func run() {
 
 	grid.OutputInt(VisitedMaze)
 
+	seats := make(map[grid.Point]struct{})
+	seats[end] = struct{}{}
+
+	pathStack := []grid.Point{end}
+	for len(pathStack) > 0 {
+		p := pathStack[0]
+		pathStack = pathStack[1:]
+
+		paths := checkShortest(p)
+
+		score := grid.SafeGet(VisitedMaze, p)
+		grid.Set(VisitedMaze, p, score%100)
+
+		for _, path := range paths {
+			seats[path] = struct{}{}
+			pathStack = append(pathStack, path)
+		}
+	}
+
+	grid.OutputInt(VisitedMaze)
+
 	fmt.Println(grid.SafeGet(VisitedMaze, end))
+	fmt.Println(len(seats))
 }
 
 func main() {

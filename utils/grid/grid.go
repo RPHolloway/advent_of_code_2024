@@ -79,7 +79,7 @@ func OutputInt(arr [][]int) {
 	var builder strings.Builder
 	for _, row := range arr {
 		for _, i := range row {
-			fmt.Fprintf(&builder, "%05d ", i)
+			fmt.Fprintf(&builder, "%06d ", i)
 		}
 		builder.WriteString("\n")
 	}
