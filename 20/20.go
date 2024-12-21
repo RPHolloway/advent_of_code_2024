@@ -8,14 +8,27 @@ import (
 	"time"
 )
 
+type Node struct {
+	Location grid.Point
+	Steps    int
+}
+
 type Cheat struct {
 	Start grid.Point
 	End   grid.Point
 	Delta int
 }
 
-const FILE_NAME = "example.txt"
-const CHEAT_LENGTH = 2
+const FILE_NAME = "input.txt"
+const CHEAT_LENGTH = 20
+const CHEAT_THRESHOLD = 100
+
+var CheatDirections = []grid.Point{
+	{X: 1, Y: 1},   // down right
+	{X: -1, Y: 1},  // down left
+	{X: 1, Y: -1},  // up right
+	{X: -1, Y: -1}, // up left
+}
 
 var Track [][]rune
 var Visited [][]int
@@ -27,41 +40,34 @@ func timeTrack(start time.Time) {
 	fmt.Println(elapsed)
 }
 
-func checkShortcut(p grid.Point) int {
-	var delta int
-
-	var neighbors []int
-	for _, dir := range grid.Directions {
-		v := grid.SafeGet(Visited, p.Add(dir))
-		neighbors = append(neighbors, v)
-	}
-
-	if neighbors[grid.DIR_UP] != 0 && neighbors[grid.DIR_DOWN] != 0 {
-		delta = neighbors[grid.DIR_UP] - neighbors[grid.DIR_DOWN]
-	} else if neighbors[grid.DIR_LEFT] != 0 && neighbors[grid.DIR_RIGHT] != 0 {
-		delta = neighbors[grid.DIR_LEFT] - neighbors[grid.DIR_RIGHT]
-	}
-
-	return int(math.Abs(float64(delta)))
-}
-
-func cheat(start grid.Point) []Cheat {
-	var cheats []Cheat
-	var next grid.Point
-
+func findCheatsInDirection(start grid.Point, direction grid.Point) map[Cheat]struct{} {
+	cheats := make(map[Cheat]struct{})
 	startValue := grid.SafeGet(Visited, start)
-	for y := range CHEAT_LENGTH {
-		next = start
-		for x := range CHEAT_LENGTH - y {
-			next = next.Add(grid.Point{X: x, Y: y})
+
+	for y := 0; y <= CHEAT_LENGTH; y++ {
+		for x := 0; x <= CHEAT_LENGTH-y; x++ {
+			next := start.Add(grid.Point{X: direction.X * x, Y: direction.Y * y})
 			endValue := grid.SafeGet(Visited, next)
-			if endValue > startValue {
-				cheats = append(cheats, Cheat{
+			steps := x + y
+			if (endValue - steps) > startValue {
+				cheats[Cheat{
 					Start: start,
 					End:   next,
-					Delta: startValue - endValue,
-				})
+					Delta: int(math.Abs(float64(startValue-endValue))) - steps,
+				}] = struct{}{}
 			}
+		}
+	}
+
+	return cheats
+}
+
+func cheat(start grid.Point) map[Cheat]struct{} {
+	cheats := make(map[Cheat]struct{})
+
+	for _, dir := range CheatDirections {
+		for k := range findCheatsInDirection(start, dir) {
+			cheats[k] = struct{}{}
 		}
 	}
 
@@ -122,30 +128,24 @@ func run() {
 	fmt.Printf("Baseline: %d\n", baseline-1)
 	grid.OutputInt(Visited)
 
+	var cheats []Cheat
 	for _, p := range Path {
-
-	}
-
-	cheats := make(map[int]int)
-	for y, row := range Track {
-		for x, c := range row {
-			if c == '#' {
-				delta := checkShortcut(grid.Point{X: x, Y: y}) - 2
-				if delta > 0 {
-					cheats[delta]++
-				}
-			}
+		for k := range cheat(p) {
+			cheats = append(cheats, k)
 		}
 	}
+
+	var uniqueCheats = make(map[int]int)
 
 	total := 0
-	for score, count := range cheats {
-		if score >= 100 {
-			total += count
+	for _, cheat := range cheats {
+		if cheat.Delta >= CHEAT_THRESHOLD {
+			uniqueCheats[cheat.Delta]++
+			total++
 		}
 	}
 
-	//fmt.Println(cheats)
+	//fmt.Println(uniqueCheats)
 	fmt.Printf("Total: %d\n", total)
 }
 
