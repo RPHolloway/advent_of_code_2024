@@ -10,6 +10,8 @@ import (
 
 const FILE_NAME = "input.txt"
 
+type IntSliceKey [4]int
+
 var Secrets []int
 
 func timeTrack(start time.Time) {
@@ -34,9 +36,33 @@ func nextSecret(secret int) int {
 }
 
 func run() {
-	for range 2000 {
-		for i := range Secrets {
-			Secrets[i] = nextSecret(Secrets[i])
+	profitSet := make(map[IntSliceKey]int)
+	for _, secret := range Secrets {
+		var change []int
+		patternSet := make(map[IntSliceKey]int)
+
+		for range 2000 {
+			next := nextSecret(secret)
+
+			s := next % 10
+			s1 := secret % 10
+			delta := s - s1
+			change = append(change, delta)
+			if len(change) > 4 {
+				change = change[1:]
+			}
+
+			if len(change) == 4 {
+				if _, ok := patternSet[IntSliceKey(change)]; !ok {
+					patternSet[IntSliceKey(change)] = s
+				}
+			}
+
+			secret = next
+		}
+
+		for k, v := range patternSet {
+			profitSet[k] += v
 		}
 	}
 
@@ -44,7 +70,17 @@ func run() {
 	for _, secret := range Secrets {
 		total += secret
 	}
-	fmt.Println(total)
+	fmt.Printf("Secret Total: %d\n", total)
+
+	var maxProfitPattern IntSliceKey
+	maxProfit := 0
+	for k, v := range profitSet {
+		if v > maxProfit {
+			maxProfit = v
+			maxProfitPattern = k
+		}
+	}
+	fmt.Printf("Max Profit: %d %d\n", maxProfit, maxProfitPattern)
 }
 
 func main() {
