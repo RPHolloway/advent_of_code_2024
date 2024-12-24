@@ -50,6 +50,46 @@ func run() {
 	//}
 
 	fmt.Println(len(groups))
+
+	lanParty := make(map[string]struct{})
+	for c1, peers := range connectionMap {
+		for i := range len(peers) {
+			party := make(map[string]struct{})
+			party[c1] = struct{}{}
+			party[peers[i]] = struct{}{}
+
+			for _, peer := range peers {
+				lan := true
+				for c := range party {
+					if !slices.Contains(connectionMap[peer], c) {
+						lan = false
+						break
+					}
+				}
+
+				if lan {
+					party[peer] = struct{}{}
+				}
+			}
+
+			//fmt.Println(party)
+			if len(party) > len(lanParty) {
+				lanParty = party
+			}
+		}
+	}
+
+	//fmt.Println(lanParty)
+	var lanPartySet []string
+	for k := range lanParty {
+		lanPartySet = append(lanPartySet, k)
+		slices.Sort(lanPartySet[:])
+	}
+
+	for _, c := range lanPartySet {
+		fmt.Printf("%s,", c)
+	}
+	fmt.Println()
 }
 
 func main() {
